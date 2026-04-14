@@ -1,0 +1,350 @@
+---
+title: "Desistance sensitivity analyses"
+format: html
+---
+
+This is a dynamic supplement for the article: 
+
+Wall, C. S. J., McLamore, Q., & Sakaluk, J. (2026). “Desistance”: A multimethod review of the literature on gender identity variability in transgender and gender diverse youth. *Psychology of Sexual Orientation and Gender Diversity*. Advance online publication. https://doi.org/10.1037/sgd0000912
+
+The purpose of this supplement is to be able to share the code and data for  sensitivity analyses that were/are conducted for the article, some of which may come about as a result of ongoing discussion of our work. As such, we felt we needed a more dynamic platform to engage interested readers in "what-if's"/"what-about's" that we thought were reasonable. 
+
+tl;dr: expect this page to grow/change over time, and feel free to reach out if you have questions about the code or analyses
+
+First, loading the packages we used: 
+```{r, message= FALSE}
+# Load packages
+library(tidyverse)
+library(metafor)
+library(readxl)
+library(gt)
+```
+
+And loading the set of secondary data:
+
+```{r}
+
+#cantor_plus_df is for all articles that we have coded, including 
+#the 11 originally discussed by Cantor, and the 5 we added
+cantor_plus_df  <- read_excel("./Data.xlsx")
+cantor_plus_df <- as_tibble(cantor_plus_df)
+cantor_plus_df <- arrange(cantor_plus_df, Year)
+
+#cantor_11_df is the set of the originally discussed 11 articles
+cantor_11_df <- cantor_plus_df %>% 
+  filter(In_Cantor2020 == "Yes")
+```
+
+Calculating the proportions of desistance and persistence for the original and expanded data sets under different assumptions about how to handle missing data:
+```{r}
+cantor_11_p_LOCF <-  cbind(cantor_11_df, 
+                           escalc(measure = "PR", xi = cantor_11_df$Persist_LOCF, ni = cantor_11_df$Total_ITT))
+
+cantor_11_p_NEF <-  cbind(cantor_11_df,
+                          escalc(measure = "PR", xi = cantor_11_df$Persist_NEF, ni = cantor_11_df$Total_Complete))
+
+cantor_11_d_LOCF <- cbind(cantor_11_df,
+                          escalc(measure = "PR", xi = cantor_11_df$Desist_LOCF, ni = cantor_11_df$Total_Complete))
+
+cantor_11_d_NEF <- cbind(cantor_11_df, escalc(measure = "PR", xi = cantor_11_df$Desist_NEF, ni = cantor_11_df$Total_ITT))
+
+cantor_plus_p_LOCF <-  cbind(cantor_plus_df,
+                             escalc(measure = "PR", xi = cantor_plus_df$Persist_LOCF, ni = cantor_plus_df$Total_ITT))
+
+cantor_plus_p_NEF <-   cbind(cantor_plus_df,
+                             escalc(measure = "PR", xi = cantor_plus_df$Persist_NEF, ni = cantor_plus_df$Total_Complete))
+
+cantor_plus_d_LOCF <-  cbind(cantor_plus_df,escalc(measure = "PR", xi = cantor_plus_df$Desist_LOCF, ni = cantor_plus_df$Total_Complete))
+
+cantor_plus_d_NEF <-  cbind(cantor_plus_df,
+                            escalc(measure = "PR", xi = cantor_plus_df$Desist_NEF, ni = cantor_plus_df$Total_ITT))
+
+cantor_plus_df$Drop <- cantor_plus_df$Total_ITT - cantor_plus_df$Total_Complete
+cantor_plus_drop <-  cbind(cantor_plus_df,
+                           escalc(measure = "PR", xi = cantor_plus_df$Drop, ni = cantor_plus_df$Total_ITT))
+```
+
+## The Original Analyses (Raw Proportions)
+
+The original meta-analytic results reported in our article: 
+
+```{r}
+#original 11
+cantor_11_p_LOCF_re <-  rma.uni(data = cantor_11_p_LOCF, yi, vi, test="knha")
+cantor_11_p_NEF_re <-  rma.uni(data = cantor_11_p_NEF, yi, vi, test="knha")
+cantor_11_d_LOCF_re <-  rma.uni(data = cantor_11_d_LOCF, yi, vi, test="knha")
+cantor_11_d_NEF_re <-  rma.uni(data = cantor_11_d_NEF, yi, vi, test="knha")
+
+cantor_11_p_LOCF_pred <- predict(cantor_11_p_LOCF_re)
+cantor_11_p_NEF_pre <- predict(cantor_11_p_NEF_re)
+cantor_11_d_LOCF_pred <- predict(cantor_11_d_LOCF_re)
+cantor_11_d_NEF_pred <- predict(cantor_11_d_NEF_re)
+
+#expanded 16
+cantor_plus_p_LOCF_re <-  rma.uni(data = cantor_plus_p_LOCF, yi, vi, test="knha")
+cantor_plus_p_NEF_re <-  rma.uni(data = cantor_plus_p_NEF, yi, vi, test="knha")
+cantor_plus_d_LOCF_re <-  rma.uni(data = cantor_plus_d_LOCF, yi, vi, test="knha")
+cantor_plus_d_NEF_re <-  rma.uni(data = cantor_plus_d_NEF, yi, vi, test="knha")
+
+cantor_plus_p_LOCF_pred <- predict(cantor_plus_p_LOCF_re)
+cantor_plus_p_NEF_pred <- predict(cantor_plus_p_NEF_re)
+cantor_plus_d_LOCF_pred <- predict(cantor_plus_d_LOCF_re)
+cantor_plus_d_NEF_pred <- predict(cantor_plus_d_NEF_re)
+```
+
+We also used PET-PEESE to examine whether there was evidence of small-study effects in the original 11 and expanded 16 studies, and whether the results were robust to controlling for those effects. The code/results from those analyses are silenced in this document (see our Quarto doc if you'd like to review), but the estimates are reproducibly calcuated. 
+
+```{r, include=FALSE}
+#SSE-corrected
+cantor_11_p_LOCF$se <- sqrt(cantor_11_p_LOCF$vi)#for PET
+cantor_11_p_NEF$se <- sqrt(cantor_11_p_NEF$vi)
+cantor_11_d_LOCF$se <- sqrt(cantor_11_d_LOCF$vi)
+cantor_11_d_NEF$se <- sqrt(cantor_11_d_NEF$vi)
+
+cantor_plus_p_LOCF$se <- sqrt(cantor_plus_p_LOCF$vi)
+cantor_plus_p_NEF$se <- sqrt(cantor_plus_p_NEF$vi)
+cantor_plus_d_LOCF$se <- sqrt(cantor_plus_d_LOCF$vi)
+cantor_plus_d_NEF$se <- sqrt(cantor_plus_d_NEF$vi)
+
+#PET
+#cantor
+cantor_11_p_LOCF_se <-  rma.uni(data = cantor_11_p_LOCF, yi, vi, test="knha", mods = ~ se)
+cantor_11_p_NEF_se <-  rma.uni(data = cantor_11_p_NEF, yi, vi, test="knha", mods = ~ se)#do PEESE
+cantor_11_d_LOCF_se <-  rma.uni(data = cantor_11_d_LOCF, yi, vi, test="knha", mods = ~ se)
+cantor_11_d_NEF_se <-  rma.uni(data = cantor_11_d_NEF, yi, vi, test="knha", mods = ~ se)
+
+cantor_plus_p_LOCF_se <-  rma.uni(data = cantor_plus_p_LOCF, yi, vi, test="knha", mods = ~ se)
+cantor_plus_p_NEF_se <-  rma.uni(data = cantor_plus_p_NEF, yi, vi, test="knha", mods = ~ se)
+cantor_plus_d_LOCF_se <-  rma.uni(data = cantor_plus_d_LOCF, yi, vi, test="knha", mods = ~ se)
+cantor_plus_d_NEF_se <-  rma.uni(data = cantor_plus_d_NEF, yi, vi, test="knha", mods = ~ se)
+
+#PEESE
+cantor_11_p_NEF_vi <-  rma.uni(data = cantor_11_p_NEF, yi, vi, test="knha", mods = ~ vi)# 
+```
+
+```{r, echo=FALSE}
+est <- c(cantor_11_p_LOCF_pred$pred, cantor_11_p_NEF_pre$pred, cantor_plus_p_LOCF_pred$pred, cantor_plus_p_NEF_pred$pred)
+tau <- c(sqrt(cantor_11_p_LOCF_re$tau2), sqrt(cantor_11_p_NEF_re$tau2), sqrt(cantor_plus_p_LOCF_re$tau2), sqrt(cantor_plus_p_NEF_re$tau2))
+lb <- c(cantor_11_p_LOCF_pred$cr.lb, cantor_11_p_NEF_pre$cr.lb, cantor_plus_p_LOCF_pred$cr.lb, cantor_plus_p_NEF_pred$cr.lb)
+ub <- c(cantor_11_p_LOCF_pred$cr.ub, cantor_11_p_NEF_pre$cr.ub, cantor_plus_p_LOCF_pred$cr.ub, cantor_plus_p_NEF_pred$cr.ub)
+sample <- c("ITT", "Completer", "ITT", "Completer")
+studies <- c("Cantor-11", "Cantor-11", "Cantor-Plus", "Cantor-Plus")
+effects <- "Persistence"
+persist_df <- data.frame(effects, studies, sample, est, lb, ub, tau)
+
+est <- c(cantor_11_d_LOCF_pred$pred, cantor_11_d_NEF_pred$pred, cantor_plus_d_LOCF_pred$pred, cantor_plus_d_NEF_pred$pred)
+tau <- c(sqrt(cantor_11_d_LOCF_re$tau2), sqrt(cantor_11_d_NEF_re$tau2), sqrt(cantor_plus_d_LOCF_re$tau2), sqrt(cantor_plus_d_NEF_re$tau2))
+lb <- c(cantor_11_d_LOCF_pred$cr.lb, cantor_11_d_NEF_pred$cr.lb, cantor_plus_d_LOCF_pred$cr.lb, cantor_plus_d_NEF_pred$cr.lb)
+ub <- c(cantor_11_d_LOCF_pred$cr.ub, cantor_11_d_NEF_pred$cr.ub, cantor_plus_d_LOCF_pred$cr.ub, cantor_plus_d_NEF_pred$cr.ub)
+sample <- c("Completer", "ITT", "Completer", "ITT")
+studies <- c("Cantor-11", "Cantor-11", "Cantor-Plus", "Cantor-Plus")
+effects <- "Desistance"
+desist_df <- data.frame(effects, studies, sample, est, lb, ub, tau)
+
+effects_df <- rbind(desist_df, persist_df)
+
+petpeese <- c(cantor_11_d_LOCF_se$b[[1]], cantor_11_d_NEF_se$b[[1]], 
+              cantor_plus_d_LOCF_se$b[[1]], cantor_plus_d_NEF_se$b[[1]],
+              cantor_11_p_LOCF_se$b[[1]], cantor_11_p_NEF_vi$b[[1]],
+              cantor_plus_p_LOCF_se$b[[1]], cantor_plus_p_NEF_se$b[[1]])
+
+effects_df <- cbind(effects_df, petpeese)
+
+effects_df <- effects_df %>% 
+  mutate_if(is.numeric, round, 3)
+
+gt(effects_df)
+```
+
+## Sensitivity Analyses (Transformed Proportions)
+
+The discourse around desistance has taken place in terms of the raw proportions (and informal summaries of those raw proportions) in the literature. We therefore proceeded with an analytic strategy that retained this feature of the data. Raw proportions are also intuitively interpretable, and some may feel comforted that there was no manipulation (however inoccuous or sensible) of the scale of these secondary data.
+
+However, raw proprtions can behave badly in meta-analyses, so for those interested, here are the same analyses using logit-transformed proportions: 
+
+```{r}
+cantor_11_p_LOCF_re <-  rma.glmm(measure = "PLO", 
+                                 data = cantor_11_df, 
+                                 xi = cantor_11_df$Persist_LOCF, 
+                                 ni = cantor_11_df$Total_ITT)
+
+#back-transformed point-estimate and credibility intervals
+cantor_11_p_LOCF_pred <- predict(cantor_11_p_LOCF_re, transf=transf.ilogit)
+
+cantor_11_p_NEF_re <-  rma.glmm(measure = "PLO", 
+                                data = cantor_11_df, 
+                                xi = cantor_11_df$Persist_NEF, 
+                                ni = cantor_11_df$Total_Complete)
+
+cantor_11_p_NEF_pred <- predict(cantor_11_p_NEF_re, transf=transf.ilogit)
+
+
+cantor_11_d_LOCF_re <-  rma.glmm(measure = "PLO", 
+                                 data = cantor_11_df, 
+                                 xi = cantor_11_df$Desist_LOCF, 
+                                 ni = cantor_11_df$Total_Complete)
+
+cantor_11_d_LOCF_pred <- predict(cantor_11_d_LOCF_re, transf=transf.ilogit)
+
+cantor_11_d_NEF_re <-  rma.glmm(measure = "PLO", 
+                                data = cantor_11_df, 
+                                xi = cantor_11_df$Desist_NEF, 
+                                ni = cantor_11_df$Total_ITT)
+
+cantor_11_d_NEF_pred <- predict(cantor_11_d_NEF_re, transf=transf.ilogit)
+
+#all
+cantor_plus_p_LOCF_re <-  rma.glmm(measure = "PLO", 
+                                   data = cantor_plus_df, 
+                                   xi = cantor_plus_df$Persist_LOCF, 
+                                   ni = cantor_plus_df$Total_ITT)
+
+cantor_plus_p_LOCF_pred <- predict(cantor_plus_p_LOCF_re, transf=transf.ilogit)
+
+cantor_plus_p_NEF_re <-  rma.glmm(measure = "PLO", 
+                                  data = cantor_plus_df, 
+                                  xi = cantor_plus_df$Persist_NEF, 
+                                  ni = cantor_plus_df$Total_Complete)
+
+cantor_plus_p_NEF_pred <- predict(cantor_plus_p_NEF_re, transf=transf.ilogit)
+
+cantor_plus_d_LOCF_re <- rma.glmm(measure = "PLO", 
+                                  data = cantor_plus_df, 
+                                  xi = cantor_plus_df$Desist_LOCF, 
+                                  ni = cantor_plus_df$Total_Complete)
+
+cantor_plus_d_LOCF_pred <- predict(cantor_plus_d_LOCF_re, transf=transf.ilogit)
+
+cantor_plus_d_NEF_re <-  rma.glmm(measure = "PLO", 
+                                  data = cantor_plus_df, 
+                                  xi = cantor_plus_df$Desist_NEF, 
+                                  ni = cantor_plus_df$Total_ITT)
+
+cantor_plus_d_NEF_pred <- predict(cantor_plus_d_NEF_re, transf=transf.ilogit)
+```
+
+Like the original analyses, our PET-PEESE estimates are reproducibly drawn (and you can review the code in the Quarto document):
+
+```{r, include = FALSE}
+#PET
+#original 11
+cantor_11_p_LOCF_se <-  rma.glmm(measure = "PLO", #do PEESE
+                                 data = cantor_plus_df, 
+                                 xi = cantor_11_df$Persist_LOCF, 
+                                 ni = cantor_11_df$Total_ITT,
+                                 mods = ~ cantor_11_p_LOCF$se)
+
+cantor_11_p_NEF_se <-  rma.glmm(measure = "PLO", 
+                                data = cantor_11_df, 
+                                xi = cantor_11_df$Persist_NEF, 
+                                ni = cantor_11_df$Total_Complete,
+                                mods = ~ cantor_11_p_NEF$se)
+
+cantor_11_d_LOCF_se <-  rma.glmm(measure = "PLO", 
+                                 data = cantor_11_df, 
+                                 xi = cantor_11_df$Desist_LOCF, 
+                                 ni = cantor_11_df$Total_Complete,
+                                 mods = ~ cantor_11_d_LOCF$se)
+
+cantor_11_d_NEF_re <-  rma.glmm(measure = "PLO", 
+                                data = cantor_11_df, 
+                                xi = cantor_11_df$Desist_NEF, 
+                                ni = cantor_11_df$Total_ITT,
+                                mods = ~ cantor_11_d_NEF$se)
+
+#with added studies
+cantor_plus_p_LOCF_se <-  rma.glmm(measure = "PLO", 
+                                 data = cantor_plus_df, 
+                                 xi = cantor_plus_df$Persist_LOCF, 
+                                 ni = cantor_plus_df$Total_ITT,
+                                 mods = ~ cantor_plus_p_LOCF$se)
+
+cantor_plus_p_NEF_se <-  rma.glmm(measure = "PLO", 
+                                data = cantor_plus_df, 
+                                xi = cantor_plus_df$Persist_NEF, 
+                                ni = cantor_plus_df$Total_Complete,
+                                mods = ~ cantor_plus_p_NEF$se)
+
+cantor_plus_d_LOCF_se <-  rma.glmm(measure = "PLO", 
+                                 data = cantor_plus_df, 
+                                 xi = cantor_plus_df$Desist_LOCF, 
+                                 ni = cantor_plus_df$Total_Complete,
+                                 mods = ~ cantor_plus_d_LOCF$se)
+
+cantor_plus_d_NEF_re <-  rma.glmm(measure = "PLO", #do PEESE
+                                data = cantor_plus_df, 
+                                xi = cantor_plus_df$Desist_NEF, 
+                                ni = cantor_plus_df$Total_ITT,
+                                mods = ~ cantor_plus_d_NEF$se)
+
+#PEESE
+cantor_11_p_LOCF_vi <-  rma.glmm(measure = "PLO", 
+                                 data = cantor_plus_df, 
+                                 xi = cantor_11_df$Persist_LOCF, 
+                                 ni = cantor_11_df$Total_ITT,
+                                 mods = ~ cantor_11_p_LOCF$vi)
+
+cantor_plus_d_NEF_vi <-  rma.glmm(measure = "PLO", #do PEESE
+                                data = cantor_plus_df, 
+                                xi = cantor_plus_df$Desist_NEF, 
+                                ni = cantor_plus_df$Total_ITT,
+                                mods = ~ cantor_plus_d_NEF$vi)
+
+```
+
+```{r, include= FALSE}
+est <- c(cantor_11_p_LOCF_pred$pred, cantor_11_p_NEF_pred$pred, cantor_plus_p_LOCF_pred$pred, cantor_plus_p_NEF_pred$pred)
+lb <- c(cantor_11_p_LOCF_pred$cr.lb, cantor_11_p_NEF_pred$cr.lb, cantor_plus_p_LOCF_pred$cr.lb, cantor_plus_p_NEF_pred$cr.lb)
+ub <- c(cantor_11_p_LOCF_pred$cr.ub, cantor_11_p_NEF_pred$cr.ub, cantor_plus_p_LOCF_pred$cr.ub, cantor_plus_p_NEF_pred$cr.ub)
+sample <- c("ITT", "Completer", "ITT", "Completer")
+studies <- c("Cantor-11", "Cantor-11", "Cantor-Plus", "Cantor-Plus")
+effects <- "Persistence"
+persist_df <- data.frame(effects, studies, sample, est, lb, ub)
+
+est <- c(cantor_11_d_LOCF_pred$pred, cantor_11_d_NEF_pred$pred, cantor_plus_d_LOCF_pred$pred, cantor_plus_d_NEF_pred$pred)
+lb <- c(cantor_11_d_LOCF_pred$cr.lb, cantor_11_d_NEF_pred$cr.lb, cantor_plus_d_LOCF_pred$cr.lb, cantor_plus_d_NEF_pred$cr.lb)
+ub <- c(cantor_11_d_LOCF_pred$cr.ub, cantor_11_d_NEF_pred$cr.ub, cantor_plus_d_LOCF_pred$cr.ub, cantor_plus_d_NEF_pred$cr.ub)
+sample <- c("Completer", "ITT", "Completer", "ITT")
+studies <- c("Cantor-11", "Cantor-11", "Cantor-Plus", "Cantor-Plus")
+effects <- "Desistance"
+desist_df <- data.frame(effects, studies, sample, est, lb, ub)
+
+effects_df2 <- rbind(desist_df, persist_df)
+
+petpeese <- c(transf.ilogit(coef(cantor_11_d_LOCF_se)[1]),
+              transf.ilogit(coef(cantor_11_d_NEF_se)[1]), 
+              transf.ilogit(coef(cantor_plus_d_LOCF_se)[1]), 
+              transf.ilogit(coef(cantor_plus_d_NEF_vi)[1]),
+              transf.ilogit(coef(cantor_11_p_LOCF_vi)[1]), 
+              transf.ilogit(coef(cantor_11_p_NEF_se)[1]),
+              transf.ilogit(coef(cantor_plus_p_LOCF_se)[1]), 
+              transf.ilogit(coef(cantor_plus_p_NEF_se)[1]))
+
+effects_df2 <- cbind(effects_df2, petpeese)
+effects_df2 <- effects_df2 %>% 
+  mutate_if(is.numeric, round, 3)
+
+```
+
+Our analyses based on the raw proportions:
+
+```{r, echo = FALSE}
+gt(effects_df)
+
+```
+
+Our analysis based on the log-transformed (and back-transformed) proportions:
+
+```{r, echo = FALSE}
+gt(effects_df2)
+
+```
+
+Note, we can't apply the same back-transformation straightforwardly to the estimate of tau for each meta-analytic model.  
+
+With the log-transformed (and back-transformed) analyses, the main "benefit" is that the point estimates and credibility intervals are within the natural bounds of proportions (i.e., unlike our original analyses, the numbers stay between 0 and 1). On their own, however, some might feel like these kinds of transformations are a form of "gaming" the analyses.
+
+Though the numbers vary modestly across the tables, both analyses show a remarkable amount of consistency at a high level:
+
+- desistance and persistance rates spanning 0% - 100% depending on what assumptions are made about missing data and which studies are included
+- a tremendous amount of heterogeneity (i.e.,the broad credibility intervals and large tau estimates) across all analyses, regardless of how the data are handled or which studies are included
