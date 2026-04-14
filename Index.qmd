@@ -14,7 +14,7 @@ tl;dr: expect this page to grow/change over time, and feel free to reach out if 
 First, loading the packages we used: 
 ```{r, message= FALSE}
 # Load packages
-library(tidyverse)
+library(dplyr)
 library(metafor)
 library(readxl)
 library(gt)
